@@ -1,0 +1,225 @@
+;;;;;;;;;;;;;;;;;;; COMP 105 SCHEME ASSIGNMENT ;;;;;;;;;;;;;;;
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;
+;;;;  Exercise 2
+
+;; (sublist-helper xs ys) returns the True (`#t`) boolean value if xs is a sublist of
+;; ys such that the first n elements of ys make up xs in the order that they
+;; appear, where n is the length of xs. In other words, (ys == cons (xs ms))
+;; where ms == '() or ms = (cons b bs). Otherwise, it returns False `(#f`)
+
+;; laws:
+;; (sublist-helper '() ys) == #t
+;; (sublist-helper xs '()) == #f, where (!= xs '())
+;; (sublist-helper (cons x xs) (cons y ys)) == #f, where (!= x y)
+;; (sublist-helper (cons x xs) (cons y ys)) == (sublist-helper xs ys)
+
+(define sublist-helper (xs ys)
+    (if (= xs '())
+        #t
+        (if (= ys '())
+            #f
+            (if (= (car xs) (car ys))
+                (sublist-helper (cdr xs) (cdr ys))
+                #f))))
+
+        (check-assert(sublist-helper '() '()))
+        (check-assert(sublist-helper '() '(1)))
+        (check-assert(sublist-helper '() '(a b c)))
+        (check-assert(not(sublist-helper '(a) '())))
+        (check-assert(not(sublist-helper '(a b c) '())))
+        (check-assert(not(sublist-helper '(a b c) '(a))))
+
+;; (contig-sublist? xs ys) returns the True boolean value if xs is a sublist of
+;; ys and the False boolean value if xs is not a sublist of ys
+
+(define contig-sublist? (xs ys)
+    (if (null? xs)
+        #t
+        (if (null? ys)
+            #f
+            (if (= (car xs) (car ys))
+                (if (sublist-helper xs ys)
+                    #t
+                    (contig-sublist? xs (cdr ys)))
+                (contig-sublist? xs (cdr ys))))))
+
+        
+        (check-assert (contig-sublist? '() '()))
+        (check-assert (contig-sublist? '() '(1)))
+        (check-assert (contig-sublist? '() '(1 2 3)))
+        (check-assert (= (contig-sublist? '(1) '()) #f))
+        (check-assert (= (contig-sublist? '(1) '(1)) #t))
+        (check-assert (not(contig-sublist? '(1 2) '(1))))
+        (check-assert (contig-sublist? '(1 2 4) '(1 2 3 1 2 4)))
+        (check-assert (contig-sublist? '(1 2 3 4 5) '(1 2 3 4 5)))
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;
+;;;;  Exercise 3
+
+
+;; (flatten xs) returns a list of s-expressions without internal (nested)
+;; parentheses
+
+;; laws:
+;;   (flatten '()) == '()
+;;   (flatten '(x (cons y ys)) == (cons x (cons y ys)))
+;;   (flatten '((cons x xs) (cons x ys))) == 
+;;              (append (flatten (cons x xs)) (flatten cons x xs))
+
+(define flatten (xs)
+    (if (= xs '())
+        xs
+        (if (atom? (car xs))
+            (if (= (car xs) '())
+                (append (flatten (cdr xs)) '())
+                (cons (car xs) (flatten (cdr xs))))
+            (append (flatten (car xs)) (flatten (cdr xs))))))
+
+        
+        (check-expect (flatten '(((a)))) '(a))
+        (check-expect (flatten '()) '())
+        (check-expect (flatten '((a) () ((b c)) d e)) '(a b c d e))
+        (check-expect (flatten '(() () ())) '())
+        (check-expect (flatten '((A) (D) (O) (N) (A) (I))) '(A D O N A I))
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;
+;;;;  Exercise 4
+
+
+;; (take n xs) returns a list of the first n elements in xs
+
+;; laws:
+;;   (take 0 xs)  == '()
+;;   (take n '()) == '()
+;;   (take n (cons x xs)) == (cons x (take (- n 1) xs))
+;; The (take n ms) function returns a list of the first n elements of the list
+;; ms, (and the first law tracks whether n is 0) or returns all of ms if the
+;; length of ms is smaller than the length of ms (the second law tracks whether
+;; ms is empty which means we're done with the list). The final law is the
+;; recursive law which takes the first element and applies cons to that and the
+;; result of calling take on cdr(ms), decrementing n by 1
+
+(define take (n xs)
+    (if (null? xs)
+        xs
+        (if (= n 0)
+            '()
+            (cons (car xs) (take (- n 1) (cdr xs))))))
+
+        
+        (check-expect (take 2 '()) '())
+        (check-expect (take 0 '()) '())
+        (check-expect (take 4 '(1 2 3 4 5 6)) '(1 2 3 4))
+        (check-expect (take 0 '(1 2 3 4 5 6)) '())
+       
+
+
+
+
+;; (drop n xs) removes the first n elements in the list xs, returning the
+;; remainder, or the empty list if the length of xs is less than n
+
+;; laws:
+;;   (drop 0 xs)  == xs
+;;   (drop n '()) == '()
+;;   (drop n (cons x xs)) == (drop (- n 1) xs)
+;; Drop is meant to keep removing the first value from a given list until it
+;; gets to a point where the given n is 0 or the given list is empty, then it
+;; stops
+
+(define drop (n xs)
+    (if (null? xs)
+        '()
+        (if (= n 0)
+            xs
+            (drop (- n 1) (cdr xs)))))
+
+        
+        (check-expect (drop 5 '()) '())
+        (check-expect (drop 3 '(1 2 3)) '())
+        (check-expect (drop 3 '(1 2 3 4)) '(4))
+        (check-expect (drop 1 '(1 2 3 4)) '(2 3 4))
+        (check-expect (drop 5 '(1 2 3 4)) '())
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;
+;;;;  Exercise 5
+
+
+;; (zip xs ys) converts a pair of lists xs and ys into a list of pairs, such
+;; that each pair has
+
+;; laws:
+;;   (zip '() ys) == '()
+;;   (zip xs '()) == '()
+;;   (zip (cons x xs) (cons y ys)) = (cons (list2 x y) (zip xs ys))
+;; The aim of this law is to cons the car of a given list xs with the car of a
+;; given list ys until we get to the point where we hit an empty list (the lists
+;; have been fully dealt with)
+
+(define zip (xs ys)
+    (if (null? xs)
+        '()
+        (if (null? ys)
+            '()
+            (cons (list2 (car xs) (car ys)) (zip (cdr xs) (cdr ys)))))) 
+
+
+        (check-expect (zip '(1 2 3) '(a b c)) '((1 a) (2 b) (3 c)))
+        (check-expect (zip '() '()) '())
+
+
+
+;; (unzip ps) converts a list of pairs into a pair of lists
+
+(define unzip (ps)
+    (list2 (map car ps) (map cadr ps)))
+
+        
+        (check-expect (unzip '((a b) (c d))) '((a c) (b d)))
+        (check-expect (unzip '()) '(() ()))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;
+;;;;  Exercise 6
+
+
+;; (arg-max f xs) returns the element in the list xs which returns the maximum
+;; value for f in xs
+
+;; laws:
+;;  (arg-max f (cons x '())) == x
+;;  (arg-max f (cons x xs)) = (arg-max f (cons (car xs)
+;;              (cddr xs))), where (> (f x) (f (cadr xs)))
+;;  (arg-max f (cons x xs)) = (arg-max f xs), where 
+;;              (> (f x) (f (cad xs)))
+;; This arg-max implementation strives to reduce the list xs one by one, by
+;;   comparing the first two elements in the list and eliminating the one that
+;;   produces the smallest value when called in f
+
+(define arg-max (f xs)
+    (if (null? (cdr xs))
+        (car xs)
+        (if (> (f (car xs)) (f (cadr xs)))
+            (arg-max f (cons (car xs) (cddr xs)))
+            (arg-max f (cdr xs)))))
+
+        
+        (check-expect (arg-max car '((105 PL) (160 Algorithms) (170 Theory)))
+            '(170 Theory))
+        (check-expect (arg-max car '((105 PL))) '(105 PL))
